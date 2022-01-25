@@ -1,0 +1,608 @@
+---
+Title: Harrison Manuscript - Richness and diversity code
+Author: Georgia R Harrison
+Date: March 17, 2021
+output:
+  html_document:
+    theme: readable 
+    toc: true
+    toc_float: true
+  pdf_document: default
+---
+
+# Analysis for Climbing impact manuscript
+## Richness and Diversity Components
+### Code by Georgia Harrison
+#### March 11, 2021
+
+
+### library packages
+```{r, warning=FALSE, message=FALSE}
+library(vegan) #community ecology
+library(ggplot2) #data viz
+library(dplyr) #data manipulation
+library(tidyr) #data manipulation
+library(ggpubr) #for combining multiple ggplots into one figure
+library(ddpcr) #for joining data sets
+```
+
+
+## Import the data 
+Remove bluff mountain, only want face plots
+```{R}
+data <- read.csv("~/Cliffs/Manuscript/HARRISON_LGWA_MATRIX.csv", header=TRUE)
+
+data <- data %>%
+  group_by(T_LOCATION) %>% 
+  filter(T_LOCATION %in% c("HB", "TR")| n() == 1)
+#remove bluff mtn
+
+data <- data %>%
+  group_by(P_LOCATION) %>% 
+  filter(P_LOCATION %in% c("FACE")| n() == 1)
+```
+
+
+import data in long format too 
+```{R}
+long <- read.csv("~/Cliffs/Manuscript/Long_data.csv", header=TRUE)
+```
+
+
+
+## Create matrix for each taxa group 
+First, determine which columns start and end each taxa group and then create a matrix for each taxa group
+```{r, collapse=TRUE}
+which( colnames(data)=="BLAFLA") #54
+which( colnames(data)=="YELPDR") #133
+which( colnames(data)=="Moss_2") #134
+which( colnames(data)=="Wei_controversa") #174
+which( colnames(data)=="Ace_saccharum") #175
+which( colnames(data)=="Plant_5") #212
+
+
+total.abundance.matrix <- data[,54:212]
+lichen.abundance.matrix <- data[,54:133]
+moss.abundance.matrix <- data [,134:174]
+plant.abundance.matrix <- data [,175:212]
+
+```
+
+
+
+### Create a new data frame to input richness, diveristy and abundance values (but keep the important metadata)
+```{r}
+indic <- data[,c("NAME","ROUTE","PITCH_NUM", "CL_UNCL", "PLOT_NUM", "P_LOCATION", "T_LOCATION", "ROUTE_TYPE", 
+                   "GRADE_CAT", "STARS", "TOT_HEIGHT", "SLOPE", "ASPECT_NORTH", "ASPECT_EAST")]
+indic$T_LOCATION <- as.factor((indic$T_LOCATION))
+indic$CL_UNCL <- as.factor((indic$CL_UNCL))
+```
+
+
+## Determine speciess richnes, shannon and total abundance for each 
+the cover will be used as a proxy for abundance 
+```{r}
+#all
+indic$AllRichness <- rowSums(total.abundance.matrix>0)
+indic$AllShannon <- diversity(total.abundance.matrix) # shannon is default
+indic$AllCover <- rowSums(total.abundance.matrix) 
+
+#lichens
+indic$LRichness <- rowSums(lichen.abundance.matrix>0)
+indic$LShannon <- diversity(lichen.abundance.matrix) # shannon is default
+indic$LCover <- rowSums(lichen.abundance.matrix)
+
+#mosses
+indic$MRichness <- rowSums(moss.abundance.matrix>0)
+indic$MShannon <- diversity(moss.abundance.matrix) # shannon is default
+indic$MCover <- rowSums(moss.abundance.matrix)
+
+#plants
+indic$PRichness <- rowSums(plant.abundance.matrix>0)
+indic$PShannon <- diversity(plant.abundance.matrix) # shannon is default
+indic$PCover <- rowSums(plant.abundance.matrix)
+```
+
+
+
+# Compare richness and diversity by climbing and site
+Using ANOVAs
+```{r}
+##all species
+
+Ranova <- aov(AllRichness~T_LOCATION*CL_UNCL, data=indic)
+summary(Ranova)
+TukeyHSD(Ranova)
+
+Danova <- aov(AllShannon~T_LOCATION*CL_UNCL, data=indic)
+summary(Danova)
+TukeyHSD(Danova)
+
+Canova <- aov(AllCover~T_LOCATION*CL_UNCL, data=indic)
+summary(Canova)
+TukeyHSD(Canova)
+
+
+#lichens only
+Ranova <- aov(LRichness~T_LOCATION*CL_UNCL, data=indic)
+summary(Ranova)
+TukeyHSD(Ranova)
+
+Danova <- aov(LShannon~T_LOCATION*CL_UNCL, data=indic)
+summary(Danova)
+TukeyHSD(Danova)
+
+Canova <- aov(LCover~T_LOCATION*CL_UNCL, data=indic)
+summary(Canova)
+TukeyHSD(Canova)
+
+
+###PLANTS
+Ranova <- aov(PRichness~T_LOCATION*CL_UNCL, data=indic)
+summary(Ranova)
+TukeyHSD(Ranova)
+
+Danova <- aov(PShannon~T_LOCATION*CL_UNCL, data=indic)
+summary(Danova)
+TukeyHSD(Danova)
+Canova <- aov(PCover~T_LOCATION*CL_UNCL, data=indic)
+summary(Canova)
+TukeyHSD(Canova)
+
+
+##MOSSES
+Ranova <- aov(MRichness~T_LOCATION*CL_UNCL, data=indic)
+summary(Ranova)
+TukeyHSD(Ranova)
+
+Danova <- aov(MShannon~T_LOCATION*CL_UNCL, data=indic)
+summary(Danova)
+TukeyHSD(Danova)
+Canova <- aov(MCover~T_LOCATION*CL_UNCL, data=indic)
+summary(Canova)
+TukeyHSD(Canova)
+```
+
+
+
+
+# Figures for diversity, richness and cover for all taxa by climbing and site
+```{r}
+theme_set(
+    theme(
+      panel.grid.major = element_blank(), 
+      panel.grid.minor = element_blank(), 
+      panel.background = element_blank(), 
+      axis.text = element_text(size=11, colour = "black"),  
+      axis.line = element_line(colour = "black"), 
+      axis.title = element_text(size=16, colour = "black"),
+      legend.title = element_text(size = 16, colour = "black"), 
+      legend.text = element_text(size=16, colour= "black")
+      ))
+
+#richness
+p <- ggplot(indic, aes(x=T_LOCATION, y=AllRichness, fill=CL_UNCL))
+p <- p + geom_violin(trim=FALSE)+theme_classic()
+p <- p + labs(y="Species Richness", x="Site")
+pr <- p + scale_fill_grey(name="Climbing", labels = c("Climbed", "Unclimbed"))
+
+#diversity
+p <- ggplot(indic, aes(x=T_LOCATION, y=AllShannon, fill=CL_UNCL))
+p <- p + geom_violin(trim=FALSE)+theme_classic()
+p <- p + labs(y="Shannon Diversity", x="Site")
+pd <- p + scale_fill_grey(name="Climbing", labels = c("Climbed", "Unclimbed"))
+
+#abundance
+p <- ggplot(indic, aes(x=T_LOCATION, y=AllCover, fill=CL_UNCL))
+p <- p + geom_violin(trim=FALSE)+theme_classic()
+p <- p + labs(y="Relative Abundance", x="Site")
+pa <- p + scale_fill_grey(name="Climbing", labels = c("Climbed", "Unclimbed"))
+
+
+all_taxa_summary <- ggarrange(pr, pd, pa, ncol=3, common.legend = TRUE)
+all_taxa_summary 
+
+ggsave("alltaxa_summary.jpeg", plot = all_taxa_summary,  device = "jpeg", width = 8, height = 4, dpi = 300, scale = 1)
+
+```
+
+
+
+
+## Figure for species richness for all groups 
+If needed, we could do the same thing for diversity and cover - but might be better to just put this info into a table?
+```{r}
+theme_set(
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
+      panel.background = element_blank(), axis.text = element_text(size=11, colour = "black"),  
+      axis.line = element_line(colour = "black"), axis.title = element_text(size=16, colour = "black"),
+      legend.title = element_text(size = 16, colour = "black"), legend.text = element_text(size=16, colour= "black")))
+
+
+all <- ggplot(indic, aes(x=T_LOCATION, y=AllRichness, fill=factor(CL_UNCL)))
+all <- all + geom_violin(trim=TRUE)+theme_classic()
+all <- all + labs(y="Species Richness", x="Site", title="All Taxa")
+all <- all + scale_fill_grey(name="Climbing", labels = c("Climbed", "Unclimbed"))
+plot(all)
+
+L <- ggplot(indic, aes(x=T_LOCATION, y=LRichness, fill=factor(CL_UNCL)))
+L <- L + geom_violin(trim=TRUE) +theme_classic()
+L <- L + labs(y="Species Richness", x="Site", title="Lichens")
+L <- L + scale_fill_grey(name="Climbing", labels = c("Climbed", "Unclimbed"))
+plot(L)
+
+M <- ggplot(indic, aes(x=T_LOCATION, y=MRichness, fill=factor(CL_UNCL)))
+M <- M + geom_violin(trim=TRUE)+theme_classic()
+M <- M + labs(y="Species Richness", x="Site", title="Bryophytes")
+M <- M + scale_fill_grey(name="Climbing", labels = c("Climbed", "Unclimbed"))
+plot(M)
+
+P <- ggplot(indic, aes(x=T_LOCATION, y=PRichness, fill=factor(CL_UNCL)))
+P <- P + geom_violin(trim=TRUE)+theme_classic()
+P <- P + labs(y="Species Richness", x="Site", title="Vascular Plants")
+P <- P + scale_fill_grey(name="Climbing", labels = c("Climbed", "Unclimbed"))
+plot(P)
+
+
+#combine into one figure
+combined_rich <- ggarrange(all, L, M, P, common.legend = TRUE)
+combined_rich 
+ggsave("combined_rich.jpeg", plot = combined_rich,  device = "jpeg", width = 8, height = 6, dpi = 300, scale = 1)
+```
+
+
+
+
+## Figure for diversity for all groups 
+If needed, we could do the same thing for diversity and cover - but might be better to just put this info into a table?
+```{r}
+theme_set(
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
+      panel.background = element_blank(), axis.text = element_text(size=11, colour = "black"),  
+      axis.line = element_line(colour = "black"), axis.title = element_text(size=16, colour = "black"),
+      legend.title = element_text(size = 16, colour = "black"), legend.text = element_text(size=16, colour= "black")))
+
+
+all <- ggplot(indic, aes(x=T_LOCATION, y=AllShannon, fill=factor(CL_UNCL)))
+all <- all + geom_violin(trim=TRUE)+theme_classic()
+all <- all + labs(y="Species Diversity", x="Site", title="All Taxa")
+all <- all + scale_fill_grey(name="Climbing", labels = c("Climbed", "Unclimbed"))
+plot(all)
+
+L <- ggplot(indic, aes(x=T_LOCATION, y=LShannon, fill=factor(CL_UNCL)))
+L <- L + geom_violin(trim=TRUE) +theme_classic()
+L <- L + labs(y="Species Diversity", x="Site", title="Lichens")
+L <- L + scale_fill_grey(name="Climbing", labels = c("Climbed", "Unclimbed"))
+plot(L)
+
+M <- ggplot(indic, aes(x=T_LOCATION, y=MShannon, fill=factor(CL_UNCL)))
+M <- M + geom_violin(trim=TRUE)+theme_classic()
+M <- M + labs(y="Species Diversity", x="Site", title="Bryophytes")
+M <- M + scale_fill_grey(name="Climbing", labels = c("Climbed", "Unclimbed"))
+plot(M)
+
+
+P <- ggplot(indic, aes(x=T_LOCATION, y=PShannon, fill=factor(CL_UNCL)))
+P <- P + geom_violin(trim=TRUE)+theme_classic()
+P <- P + labs(y="Species Diversity", x="Site", title="Vascular Plants")
+P <- P + scale_fill_grey(name="Climbing", labels = c("Climbed", "Unclimbed"))
+plot(P)
+
+
+#combine into one figure
+combined_div <- ggarrange(all, L, M, P, common.legend = TRUE)
+combined_div
+ggsave("combined_div.jpeg", plot = combined_div,  device = "jpeg", width = 8, height = 6, dpi = 300, scale = 1)
+```
+
+
+
+## Figure for cover for all groups 
+If needed, we could do the same thing for diversity and cover - but might be better to just put this info into a table?
+```{r}
+theme_set(
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
+      panel.background = element_blank(), axis.text = element_text(size=11, colour = "black"),  
+      axis.line = element_line(colour = "black"), axis.title = element_text(size=16, colour = "black"),
+      legend.title = element_text(size = 16, colour = "black"), legend.text = element_text(size=16, colour= "black")))
+
+
+all <- ggplot(indic, aes(x=T_LOCATION, y=AllCover, fill=factor(CL_UNCL)))
+all <- all + geom_violin(trim=TRUE)+theme_classic()
+all <- all + labs(y="Relative abundance", x="Site", title="All Taxa")
+all <- all + scale_fill_grey(name="Climbing", labels = c("Climbed", "Unclimbed"))
+plot(all)
+
+L <- ggplot(indic, aes(x=T_LOCATION, y=LCover, fill=factor(CL_UNCL)))
+L <- L + geom_violin(trim=TRUE) +theme_classic()
+L <- L + labs(y="Relative abundance", x="Site", title="Lichens")
+L <- L + scale_fill_grey(name="Climbing", labels = c("Climbed", "Unclimbed"))
+plot(L)
+
+M <- ggplot(indic, aes(x=T_LOCATION, y=MCover, fill=factor(CL_UNCL)))
+M <- M + geom_violin(trim=TRUE)+theme_classic()
+M <- M + labs(y="Relative abundance", x="Site", title="Bryophytes")
+M <- M + scale_fill_grey(name="Climbing", labels = c("Climbed", "Unclimbed"))
+plot(M)
+
+P <- ggplot(indic, aes(x=T_LOCATION, y=PCover, fill=factor(CL_UNCL)))
+P <- P + geom_violin(trim=TRUE)+theme_classic()
+P <- P + labs(y="Relative abundance", x="Site", title="Vascular Plants")
+P <- P + scale_fill_grey(name="Climbing", labels = c("Climbed", "Unclimbed"))
+plot(P)
+
+
+#combine into one figure
+combined_cover <- ggarrange(all, L, M, P, common.legend = TRUE)
+combined_cover 
+ggsave("combined_cover.jpeg", plot = combined_cover,  device = "jpeg", width = 8, height = 6, dpi = 300, scale = 1)
+```
+
+
+
+
+
+# Difference by climbing grade
+```{r}
+anova <- aov(AllShannon~GRADE_CAT, data = indic)
+summary(anova)
+TukeyHSD(anova)
+
+anova <- aov(AllRichness~GRADE_CAT, data = indic)
+summary(anova)
+TukeyHSD(anova)
+
+anova <- aov(AllCover~GRADE_CAT, data = indic)
+summary(anova)
+TukeyHSD(anova)
+```
+Taxa specific differences by climbing grade
+```{r}
+#LIchens only
+anova <- aov(LShannon~GRADE_CAT, data = indic)
+summary(anova)
+TukeyHSD(anova)
+
+anova <- aov(LRichness~GRADE_CAT, data = indic)
+summary(anova)
+TukeyHSD(anova)
+
+ #MOSSES only
+anova <- aov(MShannon~GRADE_CAT, data = indic)
+summary(anova)
+TukeyHSD(anova)
+
+anova <- aov(MRichness~GRADE_CAT, data = indic)
+summary(anova)
+TukeyHSD(anova)
+
+#plants only
+anova <- aov(PShannon~GRADE_CAT, data = indic)
+summary(anova)
+TukeyHSD(anova)
+
+anova <- aov(PRichness~GRADE_CAT, data = indic)
+summary(anova)
+TukeyHSD(anova)
+```
+
+
+# figures for by climbing grade category
+### All taxa richness, diversity and cover by climbing grade
+```{r}
+level_order <- c("EASY", "MODERATE", "ADVANCED", "UNCLIMBED")
+#how to arranged factors of x axis in order of increasing difficulty
+
+
+d<- ggplot(indic, aes(x= factor(GRADE_CAT, level = level_order), y=AllShannon, fill=CL_UNCL)) +
+      labs(y="Shannon Diversity", x="Climbing Grade") +
+      geom_violin(trim=TRUE) +
+      scale_fill_grey(name="Climbing", labels = c("Climbed", "Unclimbed"))+
+      theme_classic()+
+      theme(axis.text.x = element_text(angle=45, hjust=1))+
+      ylim(0,3)
+
+r<- ggplot(indic, aes(x= factor(GRADE_CAT, level = level_order), y=AllRichness, fill=CL_UNCL)) +
+      labs(y="Species Richness", x="Climbing Grade") +
+      geom_violin(trim=TRUE) +
+      scale_fill_grey(name="Climbing", labels = c("Climbed", "Unclimbed"))+
+      theme_classic()+
+      theme(axis.text.x = element_text(angle=45, hjust=1))+
+      ylim(0,18)
+
+a <- ggplot(indic, aes(x= factor(GRADE_CAT, level = level_order), y=AllCover, fill=CL_UNCL)) +
+      labs(y="Relative Abundance", x="Climbing Grade") +
+      geom_violin(trim=TRUE) +
+      scale_fill_grey(name="Climbing", labels = c("Climbed", "Unclimbed"))+
+      theme_classic()+
+      theme(axis.text.x = element_text(angle=45, hjust=1))
+
+climbing_level <- ggarrange(r, d, a, ncol=3,common.legend = TRUE)
+climbing_level
+
+ggsave("climbing_grade.jpeg", plot = climbing_level,  device = "jpeg", width = 8, height = 4, dpi = 300, scale = 1)
+```
+
+
+### Richness of all taxa groups by climbing grade
+```{r}
+theme_set(
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
+      panel.background = element_blank(), axis.text = element_text(size=11, colour = "black"),  
+      axis.line = element_line(colour = "black"), axis.title = element_text(size=16, colour = "black"),
+      legend.title = element_text(size = 16, colour = "black"), legend.text = element_text(size=16, colour= "black")))
+
+
+all <- ggplot(indic, aes(x= factor(GRADE_CAT, level = level_order), y=AllRichness, fill=CL_UNCL))
+all <- all + geom_violin(trim=FALSE)+theme_classic()
+all <- all + labs(y="Species Richness", x="Site", title="All Taxa")
+all <- all + scale_fill_grey(name="Climbing", labels = c("Climbed", "Unclimbed"))
+plot(all)
+
+L <- ggplot(indic, aes(x= factor(GRADE_CAT, level = level_order), y=LRichness, fill=CL_UNCL))
+L <- L + geom_violin(trim=FALSE) +theme_classic()
+L <- L + labs(y="Species Richness", x="Site", title="Lichens")
+L <- L + scale_fill_grey(name="Climbing", labels = c("Climbed", "Unclimbed"))
+plot(L)
+
+M <- ggplot(indic, aes(x= factor(GRADE_CAT, level = level_order), y=MRichness, fill=CL_UNCL))
+M <- M + geom_violin(trim=FALSE)+theme_classic()
+M <- M + labs(y="Species Richness", x="Site", title="Bryophytes")
+M <- M + scale_fill_grey(name="Climbing", labels = c("Climbed", "Unclimbed"))
+plot(M)
+
+P <- ggplot(indic, aes(x= factor(GRADE_CAT, level = level_order), y=PRichness, fill=CL_UNCL))
+P <- P + geom_violin(trim=FALSE)+theme_classic()
+P <- P + labs(y="Species Richness", x="Site", title="Vascular Plants")
+P <- P + scale_fill_grey(name="Climbing", labels = c("Climbed", "Unclimbed"))
+plot(P)
+
+
+#combine into one figure
+combined_rich_grade <- ggarrange(all, L, M, P, common.legend = TRUE)
+combined_rich_grade 
+```
+
+
+
+## create a summary table for richness, cover, and diveristy 
+```{r}
+indic$T_LOCATION <- as.factor((indic$T_LOCATION))
+indic$CL_UNCL <- as.factor((indic$CL_UNCL))
+t_all <- indic %>%
+  group_by(T_LOCATION, CL_UNCL) %>%
+    summarise(
+          mean_rich=mean(AllRichness), sd_rich=sd(AllRichness), min_rich=min(AllRichness), max_rich=max(AllRichness),
+          mean_div=mean(AllShannon), sd_div=sd(AllShannon), min_div=min(AllShannon), max_div=max(AllShannon),
+          mean_abun=mean(AllCover), sd_abun=sd(AllCover), min_abun=min(AllCover), max_abun=max(AllCover)
+          )
+head(t_all)
+```
+
+
+```{r}
+t_lichen <- indic %>%
+  group_by(T_LOCATION, CL_UNCL) %>%
+    summarise(
+          mean_rich=mean(LRichness), sd_rich=sd(LRichness), min_rich=min(LRichness), max_rich=max(LRichness),
+          mean_div=mean(LShannon), sd_div=sd(LShannon), min_div=min(LShannon), max_div=max(LShannon),
+          mean_abun=mean(LCover), sd_abun=sd(LCover), min_abun=min(LCover), max_abun=max(LCover)
+          )
+t_lichen$taxa <- "lichen"
+
+t_moss <- indic %>%
+  group_by(T_LOCATION, CL_UNCL) %>%
+    summarise(
+          mean_rich=mean(MRichness), sd_rich=sd(MRichness), min_rich=min(MRichness), max_rich=max(MRichness),
+          mean_div=mean(MShannon), sd_div=sd(MShannon), min_div=min(MShannon), max_div=max(MShannon),
+          mean_abun=mean(MCover), sd_abun=sd(MCover), min_abun=min(MCover), max_abun=max(MCover)
+          )
+t_moss$taxa <- "moss"
+
+t_plants <- indic %>%
+  group_by(T_LOCATION, CL_UNCL) %>%
+    summarise(
+          mean_rich=mean(PRichness), sd_rich=sd(PRichness), min_rich=min(PRichness), max_rich=max(PRichness),
+          mean_div=mean(PShannon), sd_div=sd(PShannon), min_div=min(PShannon), max_div=max(PShannon),
+          mean_abun=mean(PCover), sd_abun=sd(PCover), min_abun=min(PCover), max_abun=max(PCover)
+          )
+t_plants$taxa <- "plants"
+```
+
+
+```{r}
+summary_stats<- 
+  merge_dfs_overwrite_col(
+    t_all, t_lichen, 
+    bycol = c("CL_UNCL", "T_LOCATION"))
+head(summary_stats)
+summary_stats<- 
+  merge_dfs_overwrite_col(
+    summary_stats, t_moss, 
+    bycol = c("CL_UNCL", "T_LOCATION", 
+              "mean_rich", "sd_rich", "min_rich", "max_rich", 
+              "mean_div", "sd_div", "min_div", "max_div", 
+              "mean_abun", "sd_abun", "min_abun", "max_abun"))
+summary_stats<- 
+  merge_dfs_overwrite_col(
+    summary_stats, t_plants, 
+    bycol = c("CL_UNCL", "T_LOCATION"))
+
+```
+
+
+
+
+
+
+
+
+## Rank abundance curves 
+```{r}
+library(BiodiversityR)
+library(tibble)
+
+
+#load in community data and environment
+data1 <- data %>% column_to_rownames(var="NAME")
+com <- data1[,53:211]
+head(com)
+
+#environmental factors: climbing and site
+env <- data1[,c("CL_UNCL", "T_LOCATION")]
+env$Climbing <- as.factor(env$CL_UNCL)
+env$Site <- as.factor(env$T_LOCATION)
+
+RankAbun1 <- rankabundance(com, y=env)
+RankAbun1
+rankabunplot(RankAbun1, scale='abundance', addit=FALSE, specnames=c(1,2,3))
+```
+
+
+Rank abundance curves by climbing and site
+```{r}
+
+rankabuncomp(com, y=env, factor="Site", scale='proportion', legend=FALSE)
+RA.Site <- rankabuncomp(com, y=env, factor='Site', 
+    return.data=TRUE, specnames=c(1:10), legend=FALSE)
+RA.Site
+
+
+rankabuncomp(com, y=env, factor="Climbing", scale='proportion', legend=FALSE)
+RA.Cl <- rankabuncomp(com, y=env, factor='Climbing', 
+    return.data=TRUE, specnames=c(1:10), legend=FALSE)
+RA.Cl
+
+```
+
+FIgures for rank abundance curves by site and climbing 
+```{r}
+library(ggrepel)
+
+plotgg2 <- ggplot(data=RA.Site, aes(x = rank, y = abundance)) 
+plotgg2 <- plotgg2 + scale_x_continuous(expand=c(0, 1), sec.axis = dup_axis(labels=NULL, name=NULL)) +
+          scale_y_continuous(expand=c(0, 1), sec.axis = dup_axis(labels=NULL, name=NULL)) +
+          geom_line(aes(colour=Grouping), size=1) +
+          geom_point(aes(colour=Grouping), size=5, alpha=0.7) +
+          geom_text_repel(data=subset(RA.Site, labelit == TRUE),
+          aes(label=species),
+          angle=45, nudge_x=1, nudge_y=1, show.legend=FALSE) +
+          scale_color_brewer(palette = "Dark2") +
+          labs(x = "rank", y = "abundance", colour = "Site")
+plotgg2
+
+
+
+plotgg3 <- ggplot(data=RA.Cl, aes(x = rank, y = abundance)) 
+plotgg3 <- plotgg3 + scale_x_continuous(expand=c(0, 1), sec.axis = dup_axis(labels=NULL, name=NULL)) +
+          scale_y_continuous(expand=c(0, 1), sec.axis = dup_axis(labels=NULL, name=NULL)) +
+          geom_line(aes(colour=Grouping), size=1) +
+          geom_point(aes(colour=Grouping), size=5, alpha=0.7) +
+          geom_text_repel(data=subset(RA.Cl, labelit == TRUE),
+          aes(label=species),
+          angle=45, nudge_x=1, nudge_y=1, show.legend=FALSE) +
+          scale_color_brewer(palette = "Dark2") +
+          labs(x = "rank", y = "abundance", colour = "Site")
+plotgg3
+```
+

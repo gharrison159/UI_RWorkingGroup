@@ -1,0 +1,339 @@
+---
+Title: Harrison Manuscript - Lichen functional groups
+Author: Georgia R Harrison
+Date: March 17, 2021
+output:
+  html_document:
+    theme: readable 
+    toc: true
+    toc_float: true
+  pdf_document: default
+---
+
+# Analysis for Climbing impact manuscript
+## Lichen functional groups
+### Code by Georgia Harrison
+#### March 11, 2021
+
+
+### library packages
+```{r, warning=FALSE, message=FALSE}
+# install.packages("vegan")
+# install.packages("ggplot2")
+# install.packages("dplyr")
+# install.packages("tidyr")
+# install.packages("ggpubr")
+# install.packages("ddpcr")
+# install.packages("ellipsis")
+
+library(vegan) #community ecology
+library(ggplot2) #data viz
+library(dplyr) #data manipulation
+library(tidyr) #data manipulation
+library(ggpubr) #for combining multiple ggplots into one figure
+library(ddpcr) #for joining data sets
+```
+
+
+## lichen functional groups
+bring in the data, make functional groupings a factor. Using long data set because that was the long way to add in functional groups.
+```{r}
+long <- read.csv("~/Cliffs/Manuscript/Long_data.csv", header=TRUE)
+
+long <- long %>%
+  group_by(T_LOCATION) %>% 
+  filter(T_LOCATION %in% c("HB", "TR")| n() == 1)
+#remove bluff mtn
+
+long <- long %>%
+  group_by(P_LOCATION) %>% 
+  filter(P_LOCATION %in% c("FACE")| n() == 1)
+```
+### we only want the lichens
+```{r}
+lichen <- long[long$TAXA=="L", ]
+
+lichen$Functional <- factor(lichen$Functional)
+summary(lichen$Functional)
+
+View(lichen)
+
+which(colnames(lichen)=="DATE") #2
+which(colnames(lichen)=="Abundance") #18
+lichen <- lichen[,2:18]
+
+```
+create a list of columns which we care about (environmetnal factors)
+```{r}
+env <- c("CL_UNCL", "T_LOCATION", "SLOPE", "ASPECT_NORTH", "ASPECT_EAST", "ROUTE","PLOT_NUM")
+
+```
+
+
+## Create richness, diversity and cover values for each fx group
+```{r, collapse = TRUE}
+crust <- lichen[lichen$Functional=="CRUST",]
+crust <- spread(crust, Species, Abundance)
+
+which(colnames(crust)=="BLBRDOT") #16
+which(colnames(crust)=="YELLWART") #44
+crust.matrix <- crust[,16:44]
+
+crust_incic <- crust [,env]
+
+crust_incic$crust.rich <- rowSums(crust.matrix>0)
+crust_incic$crust.div <- diversity(crust.matrix) # shannon is default
+crust_incic$crust.cov <- rowSums(crust.matrix) 
+
+
+
+fruit <- lichen[lichen$Functional=="FRUIT",]
+fruit <- spread(fruit, Species, Abundance)
+which(colnames(fruit)=="WHITREIN") #31
+fruit.matrix <- fruit[,16:31]
+
+fruit_indic <- fruit [,env]
+
+fruit_indic$fruit.rich <- rowSums(fruit.matrix>0)
+fruit_indic$fruit.div <- diversity(fruit.matrix) # shannon is default
+fruit_indic$fruit.cov <- rowSums(fruit.matrix) 
+
+
+
+lobe <- lichen[lichen$Functional=="LOBE",]
+lobe <- spread(lobe, Species, Abundance)
+which(colnames(lobe)=="WHITEFOL") #31
+lobe.matrix <- lobe[,16:36]
+
+lobe_indic <- lobe [,env]
+
+lobe_indic$lobe.rich <- rowSums(lobe.matrix>0)
+lobe_indic$lobe.div <- diversity(lobe.matrix) # shannon is default
+lobe_indic$lobe.cov <- rowSums(lobe.matrix) 
+
+
+
+powder <- lichen[lichen$Functional=="POWDER",]
+powder <- spread(powder, Species, Abundance)
+which(colnames(powder)=="YELPDR") #25
+powder.matrix <- powder[,16:25]
+
+powder_indic <- powder [,env]
+
+powder_indic$powder.rich <- rowSums(powder.matrix>0)
+powder_indic$powder.div <- diversity(powder.matrix) # shannon is default
+powder_indic$powder.cov <- rowSums(powder.matrix) 
+
+
+
+umb <- lichen[lichen$Functional=="UMB",]
+umb <- spread(umb, Species, Abundance)
+which(colnames(umb)=="TOADSK") #19
+umb.matrix <- umb[,16:19]
+
+
+umb_indic <- umb [,env]
+
+umb_indic$umb.rich <- rowSums(umb.matrix>0)
+umb_indic$umb.div <- diversity(umb.matrix) # shannon is default
+umb_indic$umb.cov <- rowSums(umb.matrix) 
+```
+
+
+merge all the lichen functional groups to one data set
+```{r}
+L_merge <- merge(crust_incic, fruit_indic, by.x=env, by.y=env)
+L_merge <- merge(L_merge, lobe_indic, by.x=env, by.y=env)
+L_merge <- merge(L_merge, powder_indic, by.x=env, by.y=env)
+L_merge <- merge(L_merge, umb_indic, by.x=env, by.y=env)
+
+head(L_merge)
+
+```
+
+
+
+## tidy up the data for analysis and figures
+1. Subset out richness, diversity and cover for each fx group (find column numbers). Still include plot metadata
+2. rename functional groups to consistent names
+3. convert to long format
+4. Merge all together so you have a long dataset with richness, diversity and cover for each functional group at each plot
+    + note that we still have individual richness, diversity and cover data frames if we need to run analyisis in those formats
+```{r, collapse = TRUE}
+#use head(L_merge) to keep track of column labels
+
+#metadata
+which(colnames(L_merge)=="CL_UNCL") #1
+which(colnames(L_merge)=="PLOT_NUM") #7
+
+listofnames <- c("crustose", "fruticose", "lobed foliose", "powder", "umbilicate foliose")
+
+#richness
+which(colnames(L_merge)=="crust.rich") #8
+which(colnames(L_merge)=="umb.rich") #20
+#r <- c(1:7, 8, 11, 14, 17, 20) #these columms with metadata and richness
+richness <- L_merge[, c(1:7, 8, 11, 14, 17, 20)]
+colnames(richness)[8:12] <- listofnames #rename columns
+
+richness <- gather(richness, fx, richness, 8:12) #long format
+#fx is functional group
+
+
+#diversity
+which(colnames(L_merge)=="crust.div") #9
+which(colnames(L_merge)=="umb.div") #21
+#d<- c(1:7, 9, 12, 15, 18, 21)
+diversity <- L_merge[, c(1:7, 9, 12, 15, 18, 21)]
+colnames(diversity)[8:12] <- listofnames #rename columns
+
+diversity <- gather(diversity, fx, diversity, 8:12) #long format
+  
+#cover
+which(colnames(L_merge)=="crust.cov") #10
+which(colnames(L_merge)=="umb.cov") #22
+#c<- c(1:7, 10, 13, 16, 19, 22)
+cover <- L_merge[,c(1:7, 10, 13, 16, 19, 22)]
+colnames(cover)[8:12] <- listofnames #rename columns
+
+cover <- gather(cover, fx, cover, 8:12) #long format
+
+  
+
+
+#combine them all together
+env1 <- c("CL_UNCL", "T_LOCATION", "SLOPE", "ASPECT_NORTH", "ASPECT_EAST", "ROUTE","PLOT_NUM", "fx")
+lindic <- merge(richness, diversity, by.x=env1, by.y=env1)
+lindic <- merge(lindic, cover, by.x=env1, by.y=env1)
+head(lindic)
+```
+
+
+## Figures for lichen fx groups
+```{r}
+theme_set(
+    theme(
+      panel.grid.major = element_blank(), 
+      panel.grid.minor = element_blank(), 
+      panel.background = element_blank(), 
+      axis.text = element_text(size=11, colour = "black"),  
+      axis.line = element_line(colour = "black"), 
+      axis.title = element_text(size=16, colour = "black"),
+      legend.title = element_text(size = 16, colour = "black"), 
+      legend.text = element_text(size=16, colour= "black"),
+      strip.text.x = element_text(size=16)
+      ))
+
+#richness
+p <- ggplot(lindic, aes(x=T_LOCATION, y=richness, fill=CL_UNCL))
+p <- p + geom_violin(trim=FALSE)+theme_classic()
+p <- p + labs(y="Species Richness", x="Site", title="Species richness by lichen functional group")
+p <- p + facet_wrap(~fx)
+pr <- p + scale_fill_grey(name="Climbing", labels = c("Climbed", "Unclimbed"))
+plot(pr)
+
+#diversity
+p <- ggplot(lindic, aes(x=T_LOCATION, y=diversity, fill=CL_UNCL))
+p <- p + geom_violin(trim=FALSE)+theme_classic()
+p <- p + labs(y="Shannon Diversity Index", x="Site", title="Diversity by lichen functional group")
+p <- p + facet_wrap(~fx)
+pd <- p + scale_fill_grey(name="Climbing", labels = c("Climbed", "Unclimbed"))
+plot(pd)
+
+#abundance
+p <- ggplot(lindic, aes(x=T_LOCATION, y=cover, fill=CL_UNCL))
+p <- p + geom_violin(trim=TRUE)+theme_classic()
+p <- p + labs(y="Relative abundance", x="Site")
+p <- p + theme(legend.position = "top")
+p <- p + facet_wrap(~fx)
+p <- p + ylim(0,35)
+pc <- p + scale_fill_grey(name="Climbing", labels = c("Climbed", "Unclimbed"))
+plot(pc)
+
+
+
+ggsave("lichen_funct_cover.jpeg", plot = pc,  
+       path = "~/Cliffs/Manuscript/Figure export from R",
+       device = "jpeg", width = 8, height = 5, dpi = 300, scale = 1)
+```
+
+**might also be interesting to flip climbing and site**
+```{r}
+p <- ggplot(lindic, aes(x=CL_UNCL, y=richness, fill=T_LOCATION))
+p <- p + geom_violin(trim=FALSE)+theme_classic()
+p <- p + labs(y="Species Richness", x="Site", title="Species richness by lichen functional group")
+p <- p + facet_wrap(~fx)
+pr <- p + scale_fill_grey(name="Site", labels = c("HB", "TR"))
+plot(pr)
+
+p <- ggplot(lindic, aes(x=CL_UNCL, y=cover, fill=T_LOCATION))
+p <- p + geom_violin(trim=FALSE)+theme_classic()
+p <- p + labs(y="Relative abundance", x="Site", title="Cover by lichen functional group")
+p <- p + facet_wrap(~fx)
+pc <- p + scale_fill_grey(name="Site", labels = c("HB", "TR"))
+plot(pc)
+
+
+```
+
+## anovas on lichen functional groups 
+#### richness cover and diversity by functional group
+```{r}
+aov <-aov(richness~fx, data=lindic)
+summary(aov)
+TukeyHSD(aov)
+aov <-aov(diversity~fx, data=lindic)
+summary(aov)
+TukeyHSD(aov)
+aov <-aov(cover~fx, data=lindic)
+summary(aov)
+TukeyHSD(aov)
+```
+
+### by climbing and site
+```{r}
+aov <-aov(richness~CL_UNCL*T_LOCATION, data=lindic)
+summary(aov)
+TukeyHSD(aov)
+aov <-aov(diversity~CL_UNCL*T_LOCATION, data=lindic)
+summary(aov)
+TukeyHSD(aov)
+aov <-aov(cover~CL_UNCL*T_LOCATION, data=lindic)
+summary(aov)
+TukeyHSD(aov)
+```
+
+
+### Each functioanl group 
+Need to use L_merge df for this.  
+Just **crust** first
+```{r}
+aov <-aov(crust.rich~CL_UNCL*T_LOCATION, data=L_merge)
+summary(aov)
+TukeyHSD(aov)
+aov <-aov(crust.div~CL_UNCL*T_LOCATION, data=L_merge)
+summary(aov)
+TukeyHSD(aov)
+aov <-aov(crust.cov~CL_UNCL*T_LOCATION, data=L_merge)
+summary(aov)
+TukeyHSD(aov)
+```
+
+### Cover of each functional group by site and climbing
+
+```{r}
+caov <-aov(crust.cov~CL_UNCL*T_LOCATION, data=L_merge)
+summary(caov)
+TukeyHSD(caov)
+caov <-aov(powder.cov~CL_UNCL*T_LOCATION, data=L_merge)
+summary(caov)
+TukeyHSD(caov)
+caov <-aov(fruit.cov~CL_UNCL*T_LOCATION, data=L_merge)
+summary(caov)
+TukeyHSD(caov)
+caov <-aov(lobe.cov~CL_UNCL*T_LOCATION, data=L_merge)
+summary(caov)
+TukeyHSD(caov)
+caov <-aov(umb.cov~CL_UNCL*T_LOCATION, data=L_merge)
+summary(caov)
+TukeyHSD(caov)
+```

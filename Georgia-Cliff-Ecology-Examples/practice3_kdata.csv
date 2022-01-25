@@ -1,0 +1,15 @@
+,PairName,location,set,boulder,route,grade,face_or_top,feature,feature_size,aspect,incline,sun,climbed_or_unclimbed,plot_height,AllRichness,AllShannon,AllSimpson,AllCover,LRichness,LShannon,LSimpson,LCover,BRichness,BShannon,BSimpson,BCover
+1,1C,Brick,1,Owl Farm,South Street,4-,face,ledge,small,S,vertical,1,climbed,2,2,0.693147181,0.5,6,5,0.833659601,0.485478763,113.1,2,0.693147181,0.5,6
+2,1C,Brick,1,Owl Farm,South Street,4-,face,ledge,small,S,vertical,1,climbed,2,5,0.833659601,0.485478763,113.1,5,0.833659601,0.485478763,113.1,2,0.693147181,0.5,6
+3,1U,Brick,1,Owl Farm,South Street,4-,face,ledge,small,S,vertical,1,unclimbed,2,1,0,0,0.55,7,0.871136446,0.479742098,112.15,1,0,0,0.55
+4,1U,Brick,1,Owl Farm,South Street,4-,face,ledge,small,S,vertical,1,unclimbed,2,7,0.871136446,0.479742098,112.15,7,0.871136446,0.479742098,112.15,1,0,0,0.55
+5,2C,Brick,2,Backyard,Grotesque Old Woman,7,face,flake,small,E,overhang,2,climbed,2,1,0,0,30,3,0.342446198,0.176264561,83.05,1,0,0,30
+6,2C,Brick,2,Backyard,Grotesque Old Woman,7,face,flake,small,E,overhang,2,climbed,2,3,0.342446198,0.176264561,83.05,3,0.342446198,0.176264561,83.05,1,0,0,30
+7,2U,Brick,2,Backyard,Grotesque Old Woman,7,face,flake,small,E,overhang,2,unclimbed,2,1,0,0,30,5,0.612878587,0.281258187,89.05,1,0,0,30
+8,2U,Brick,2,Backyard,Grotesque Old Woman,7,face,flake,small,E,overhang,2,unclimbed,2,5,0.612878587,0.281258187,89.05,5,0.612878587,0.281258187,89.05,1,0,0,30
+9,3C,Brick,3,Routes Next Door,Sightings,3,face,pocket,small,W,vertical,3,climbed,2,2,0.043089882,0.014453899,75.55,2,0.043089882,0.014453899,75.55,NA,NA,NA,NA
+10,3U,Brick,3,Routes Next Door,Sightings,3,face,pocket,small,W,vertical,3,unclimbed,1,7,1.199898351,0.631366192,142.1,7,1.199898351,0.631366192,142.1,NA,NA,NA,NA
+11,4C,Brick,4,Owl Farm,Font Problem,5,top,sloper,large,N,ramp,1,climbed,2,1,0,0,3,6,1.320889798,0.707143965,211.1,1,0,0,3
+12,4C,Brick,4,Owl Farm,Font Problem,5,top,sloper,large,N,ramp,1,climbed,2,6,1.320889798,0.707143965,211.1,6,1.320889798,0.707143965,211.1,1,0,0,3
+13,4U,Brick,4,Owl Farm,Font Problem,5,top,sloper,large,N,ramp,1,unclimbed,2,1,0,0,3,7,0.894256615,0.484326564,112.65,1,0,0,3
+14,4U,Brick,4,Owl Farm,Font Problem,5,top,sloper,large,N,ramp,1,unclimbed,2,7,0.894256615,0.484326564,112.65,7,0.894256615,0.484326564,112.65,1,0,0,3

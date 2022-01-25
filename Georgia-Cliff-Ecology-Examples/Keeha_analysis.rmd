@@ -1,0 +1,324 @@
+---
+Title: Keeha Thesis - paired t-tests 
+Date: March 22, 2021
+output:
+  html_document:
+    theme: readable 
+    toc: true
+    toc_float: true
+  pdf_document: default
+---
+
+
+# Keeha Data analysis
+#### From Georgia to get you started
+
+ **Tessler and Clark (2016)** analysis:
+ 1. Paired t test
+ 2. NMDS of community
+
+
+# Paired t-tests
+## goal of the analysis:
+* check for normality and carry out paired t-test. For this example, we will just do all taxa species richness but same idea applies for cover and diversity for all taxa and groups. 
+  + note that you will use paired t-test only if data are normally distributed. If data are not normal, will use Wilcoxon-signed rank tests
+
+## tutorials I found helpful:
+ *  [paired samples t test in R](http://www.sthda.com/english/wiki/paired-samples-t-test-in-r)
+ *  [normality testing](http://www.sthda.com/english/wiki/normality-test-in-r)
+ * [dplyr gather function](https://tidyr.tidyverse.org/reference/gather.html)
+
+## Library packages 
+````{r, message=FALSE, warning=FALSE}
+library(vegan)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(ggpubr) #for combining ggplot figures
+library(PairedData)
+```
+
+## Bring in the data 
+You could also just work with your indic data set if you were continuing code.  
+**note** For future analysis, it might be important to have a way to seperate pairs. I added a PairName column. Not important yet but maybe later. 
+```{r}
+indic <- read.csv("practice3_kdata.csv", header = TRUE)
+```
+
+### Get data into correct format!
+into **long** format using `gather` function from *dplyr*. 
+```{r}
+rich_long <- gather(indic, key= "Taxa", value ="richness",
+               AllRichness)
+head(rich_long)
+```
+
+## summary stats using dplyr
+```{r, message=FALSE, warning=FALSE}
+sum<- 
+  group_by(rich_long, climbed_or_unclimbed) %>%
+  summarise(
+    count = n(),
+    mean = mean(richness, na.rm = TRUE),
+    sd = sd(richness, na.rm = TRUE)
+  )
+sum
+```
+
+## viz the data with simple box plots 
+Not super pretty, but good way to look at things quickly to get an idea of the data. If you want to make nicer figures, use ggplot. 
+```{r}
+ggboxplot(rich_long, x = "climbed_or_unclimbed", y = "richness", 
+          color = "climbed_or_unclimbed", palette = c("#00AFBB", "#E7B800"),
+          order = c("climbed", "unclimbed"),
+          ylab = "number of species", xlab = "climbing?")
+```
+
+## plot the paired data
+using package `PairedData`
+```{r}
+# Subset climbed data 
+cl <- subset(rich_long,  climbed_or_unclimbed == "climbed", richness,
+                 drop = TRUE)
+# subset unclimbed data
+uncl <- subset(rich_long,  climbed_or_unclimbed == "unclimbed", richness,
+                 drop = TRUE)
+# Plot paired data
+pd <- paired(cl, uncl)
+plot(pd, type = "profile") + theme_bw()
+```
+
+## Preleminary test to check paired t-test assumption
+````{r}
+# compute the difference
+d <- with(rich_long, 
+        richness[climbed_or_unclimbed == "climbed"] - richness[climbed_or_unclimbed == "unclimbed"])
+# Shapiro-Wilk normality test for the differences
+shapiro.test(d) # => p-value = 0.4226
+```
+From the output, the p-value is greater than the significance level 0.05 implying that the distribution of the differences (d) are not significantly different from normal distribution. In other words, we can assume the normality.
+  + The null hypothesis of these tests is that “sample distribution is normal”. If the test is significant, the distribution is non-normal.
+**How to interpret:**
+if the p-value > 0.05 implying that the distribution of the data are not significantly different from normal distribution. In other words, we can assume the normality.  
+
+## Viz the distribution of the data
+with a density plot and Q-Q plot. Q-Q plot draws the correlation between a given sample and the normal distribution. A 45-degree reference line is also plotted. If all the dots fell perfectly on the 45 degree line, the data would be perfectly normally distributed
+```{r}
+ggdensity(indic$AllRichness, 
+          main = "Density plot of species richness",
+          xlab = "Number of species")
+
+#Q-Q plot 
+ggqqplot(indic$AllRichness)
+```
+
+## Compute paired samples t-test
+#### two options
+**option one:** data saved in two difference numeric vectors
+```{r}
+res <- t.test(cl, uncl, paired = TRUE)
+res
+```
+
+**option two:** data are saved in one data frame
+```{r}
+res <- t.test(richness ~ climbed_or_unclimbed, data = rich_long, paired = TRUE)
+res
+```
+
+Both options should give you the same result, which one you use depends on how your data is set up. 
+
+## Interpreting the results 
+`t.test()` contains the following output:
+* Statistic: the value of the t test statistics
+* parameter: the degrees of freedom for the t test statistics
+* p.value: the p-value for the test
+* conf.int: a confidence interval for the mean appropriate to the specified alternative hypothesis.
+* estimate: the means of the two groups being compared (in the case of independent t test) or difference in means (in the case of paired t test).
+
+### you can have R print the outputs on t test for you 
+```{r, collapse=TRUE}
+# printing the p-value
+res$p.value
+# printing the mean
+res$estimate
+# printing the confidence interval
+res$conf.int
+```
+
+****
+
+
+
+
+
+
+# NMDS
+Okay so the nmds stuff is tricky. It is weird with just a subset of the data, so we will need to mess around with it for the full data. I have the code as a text here just so you can take a look, but really do not worry about it for now. The main point and big findings of your analysis will be the paired t tests. 
+
+##  tutorials / info on NMDS:
+* Example nmds from  [here](https://jonlefcheck.net/2012/10/24/nmds-tutorial-in-r/). 
+* [Tutorial I used](https://jkzorz.github.io/2020/04/04/NMDS-extras.html) for envfit function (vegan)
+
+
+
+
+
+### Recall species matrix datasets
+I will just use your data with lichen + moss
+**I removed the set of plots with 0 cover **
+```{r}
+kdata = read.csv("keeha_face_data.csv", header=TRUE)
+
+wide = spread(kdata, vegcode, cover)
+
+head(wide, 1)
+which(colnames(wide)=="BLCRUST")
+which(colnames(wide)=="YELLOW")
+
+total_abundance_matrix = wide[,15:38]
+total_abundance_matrix[is.na(total_abundance_matrix)] =0
+
+```
+
+
+## nmds
+```{r}
+
+
+m_com = as.matrix(total_abundance_matrix) #convert com to a matrix
+
+
+#environmental data set - only abio factors. For now, onyl categorical
+which(colnames(wide)=="boulder") #3
+which(colnames(wide)=="climbed_or_unclimbed") #12
+#env <- wide[,c("climbed_or_unclimbed", "feature", "aspect", "incline", "sun")]
+
+env = wide[,c(3,12)]
+
+set.seed(123) #so same results with repeated iterations 
+c_nmds = metaMDS(m_com, k=2, distance = "bray")
+stressplot(c_nmds)
+c_nmds
+
+
+
+en = envfit(c_nmds, env, permutations = 999, na.rm = TRUE)
+en #only factors so far
+
+plot(c_nmds)
+plot(en)
+
+#extract values to plot with ggplot
+c.data.scores = as.data.frame(scores(c_nmds))
+c.data.scores$boulder = wide$boulder
+c.data.scores$climbing = wide$climbed_or_unclimbed
+
+#from tutorial
+gg = ggplot(data = c.data.scores, aes(x = NMDS1, y = NMDS2)) + 
+     geom_point(data = c.data.scores, aes(colour = climbing), size = 3, alpha = 0.5) + 
+     scale_colour_manual(values = c("orange", "steelblue")) + 
+     theme(axis.title = element_text(size = 10, face = "bold", colour = "grey30"), 
+     panel.background = element_blank(), panel.border = element_rect(fill = NA, colour = "grey30"), 
+     axis.ticks = element_blank(), axis.text = element_blank(), legend.key = element_blank(), 
+     legend.title = element_text(size = 10, face = "bold", colour = "grey30"), 
+     legend.text = element_text(size = 9, colour = "grey30")) +
+     labs(colour = "Climbing")
+gg
+
+
+#from old thesis code
+#I can make these look nicer
+ggplot(c.data.scores, aes(x=NMDS1, y=NMDS2, col=boulder)) +
+  geom_point(size=2) +
+  stat_ellipse(size=2) +
+  theme_bw() +
+  scale_color_brewer(palette = "Dark2") +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.text = element_text(size=16, colour = "black"),  
+        axis.line = element_line(colour = "black"), axis.title = element_text(size=16, colour = "black"),
+        legend.title = element_text(size = 16, colour = "black"), legend.text = element_text(size=16, colour= "black"))
+
+ggplot(c.data.scores, aes(x=NMDS1, y=NMDS2, col=climbing)) +
+  geom_point(size=2) +
+  stat_ellipse(size=2) +
+  theme_bw() +
+  scale_color_brewer(palette = "Dark2") +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.text = element_text(size=16, colour = "black"),  
+        axis.line = element_line(colour = "black"), axis.title = element_text(size=16, colour = "black"),
+        legend.title = element_text(size = 16, colour = "black"), legend.text = element_text(size=16, colour= "black"))
+
+
+ggplot(c.data.scores, aes(x=NMDS1, y=NMDS2, shape=factor(boulder), col=climbing)) +
+  geom_point(size=2) +
+  stat_ellipse(size=2) +
+  theme_bw() +
+  scale_color_brewer(palette = "Dark2")+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.text = element_text(size=16, colour = "black"),  
+        axis.line = element_line(colour = "black"), axis.title = element_text(size=16, colour = "black"),
+        legend.title = element_text(size = 16, colour = "black"), legend.text = element_text(size=16, colour= "black"))
+
+```
+
+## Envfit to community data
+```{r}
+#use the same m_com data set as before
+#create an environment data set.
+env <- wide[,c("climbed_or_unclimbed", "feature", "aspect", "incline", "sun")]
+
+#nmds code
+set.seed(123)
+e1_nmds = metaMDS(m_com, k=2, distance = "bray")
+stressplot(e1_nmds)
+e1_nmds
+
+
+en1 = envfit(e1_nmds, env, permutations = 999, na.rm = TRUE)
+en1
+
+
+#extract values to plot with ggplot
+e1.data.scores = as.data.frame(scores(e1_nmds))
+e1.data.scores$boulder = wide$boulder
+en_coord_cont = as.data.frame(scores(en1, "vectors")) * ordiArrowMul(en1)
+en_coord_cat = as.data.frame(scores(en1, "factors")) * ordiArrowMul(en1)
+
+
+#from tutorial
+gg = ggplot(data = e1.data.scores, aes(x = NMDS1, y = NMDS2)) + 
+     geom_point(data = e1.data.scores, aes(colour = boulder), size = 3, alpha = 0.5) + 
+     theme(axis.title = element_text(size = 10, face = "bold", colour = "grey30"), 
+     panel.background = element_blank(), panel.border = element_rect(fill = NA, colour = "grey30"), 
+     axis.ticks = element_blank(), axis.text = element_blank(), legend.key = element_blank(), 
+     legend.title = element_text(size = 10, face = "bold", colour = "grey30"), 
+     legend.text = element_text(size = 9, colour = "grey30")) +
+     labs(colour = "boulder")
+gg
+
+
+
+gg = ggplot(data = e1.data.scores, aes(x = NMDS1, y = NMDS2)) + 
+       geom_point(data = e1.data.scores, aes(colour = Site), size = 3, alpha = 0.5) + 
+       scale_colour_manual(values = c("orange", "steelblue"))  + 
+       geom_segment(aes(x = 0, y = 0, xend = NMDS1, yend = NMDS2), 
+         data = en_coord_cont, size =1, alpha = 0.5, colour = "grey30") +
+       geom_text(data = en_coord_cont, aes(x = NMDS1, y = NMDS2), check_overlap = TRUE, 
+                 colour = "grey30", fontface = "bold", label = row.names(en_coord_cont), vjust="inward"
+                 )+
+        geom_point(data = en_coord_cat, aes(x = NMDS1, y = NMDS2), 
+         shape = "diamond", size = 4, alpha = 0.6, colour = "navy") +
+       geom_text(data = en_coord_cat, aes(x = NMDS1, y = NMDS2), check_overlap = TRUE,
+         label = row.names(en_coord_cat), colour = "navy", fontface = "bold") + 
+      theme(axis.title = element_text(size = 10, face = "bold", colour = "grey30"), 
+         panel.background = element_blank(), panel.border = element_rect(fill = NA, colour = "grey30"), 
+         axis.ticks = element_blank(), axis.text = element_blank(), legend.key = element_blank(), 
+         legend.title = element_text(size = 10, face = "bold", colour = "grey30"), 
+         legend.text = element_text(size = 9, colour = "grey30"))+
+       labs(colour = "Site")
+gg
+```
+
+
+

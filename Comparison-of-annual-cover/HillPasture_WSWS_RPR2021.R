@@ -1,5 +1,5 @@
 ---
-title: "Hill Pasture Richness analysis (2020 + 2021 data)"
+title: "Hill Pasture Richness analysis (2020 + 2021 + 2022 data)"
 author: "Georgia Harrison"
 date:"Jan 25, 2021"
 output: html_document
@@ -172,15 +172,25 @@ combine_ag_cover$Pcontrol21 <-
 #############
 #create new summary table with average ag cover and percent control for each treatment group and year
 
-exportable <- 
+exportable_most <- 
   combine_ag_cover %>%
   group_by(chem_drop)%>%
   summarize(cover20=mean(ag_cover_20),
             cover21=mean(ag_cover_21),
-            cover19=mean(ag_cover_19),
             control20 = mean(Pcontrol20),
             control21 = mean(Pcontrol21)
             )
+
+exportable_some <- 
+  combine_ag_cover %>%
+  filter(!is.na(ag_cover_19)) %>%
+  group_by(chem_drop)%>%
+  summarize(cover19=mean(ag_cover_19))
+
+
+exportable <- 
+  right_join(exportable_some, exportable_most, by = "chem_drop")
+
 
 
 ##########################
@@ -188,7 +198,13 @@ exportable <-
 #########
 #percent control of annual grasses
 #2020 percent control
-t <- aov(Pcontrol20~chem_drop, data=combine_ag_cover)
+
+#want treatment only data for comparison
+t_only <- combine_ag_cover %>%
+  filter(chem_drop != "C")
+
+
+t <- aov(Pcontrol20~chem_drop, data=t_only)
 summary(t)
 out2020 <- LSD.test(t, "chem_drop")
 out2020$groups
@@ -198,7 +214,7 @@ pcontrol_20_export <-
 
 
 #2021 percent control
-t <- aov(Pcontrol21~chem_drop, data=combine_ag_cover)
+t <- aov(Pcontrol21~chem_drop, data=t_only)
 summary(t)
 out2021 <- LSD.test(t, "chem_drop")
 out2021$groups
@@ -207,14 +223,16 @@ pcontrol_21_export <-
   tibble::rownames_to_column(pcontrol_21_export, "chem_drop")#turn the row labels into a column
 
 
+##########################
+#merge files to export
+
+final_Cover_Pcontrol <- 
+  left_join(exportable, pcontrol_20_export, by = "chem_drop") %>%
+  left_join(., pcontrol_21_export, by = "chem_drop")
+
+
 
 
 ##########################
 #export files 
-write.csv(exportable, "ag_cover_control_export.csv", row.names = FALSE)
-write.csv(pcontrol_20_export, "LSDpcontrol_20_export.csv", row.names = FALSE)
-write.csv(pcontrol_21_export, "LSDpcontrol_21_export.csv", row.names = FALSE)
-
-
-
-
+write.csv(final_Cover_Pcontrol, "ag_cover_control_export.csv", row.names = FALSE)

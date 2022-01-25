@@ -1,0 +1,9 @@
+CONTENTS:
+
+
+Rangeland_cover_viz.R
+  Required files: 
+    RAP_cover.csv
+  Contents:
+    Creating scatter plots in ggplot2 using remotely sensed data of range plant cover 
+  

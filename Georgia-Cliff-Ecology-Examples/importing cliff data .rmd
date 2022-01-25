@@ -1,0 +1,302 @@
+---
+Title: "Importing and summarizing cliff data"
+output:
+    prettydoc::html_pretty:
+    theme: cayman
+author: "Georgia R Harrison"
+date: "March 15, 2021"
+---
+
+# Starting code for importing cliff data
+###  Georgia Harrison, March 2021
+
+
+This code is written to streamline the process of importing cliff survey data (or any other ecological survey). We will import the data, get it into the right format for *vegan*, and summarize species richness, diversity and cover values 
+
+
+
+## install packages 
+I like to keep a running list of all the packages I use at the top of my code like this. Run `install.packages()` in console. In the script, just `library()` so that the packages do not get reloaded a bunch of times. Once it is installed once you should be good to go until you update your R
+
+```{r, message=FALSE, warning=FALSE}
+library(vegan) #community ecology analysis
+library(ggplot2) #data viz
+library(dplyr) #data manipulation
+library(tidyr) #data manipulation
+library(ddpcr) #for merging data frames
+```
+
+
+## data import
+import the data file - **the current format of the data is long, which should be the way you enter the data** with **long** data format, each species observation in each plot will have its own row (and accompanying metadata and abiotic information).
+
+**Important to check before you import this data:**  
+
+1. each species code is unique  
+2. consistent labeling (i.e. if you have all caps for climbed or unclimbed column, make sure it is the same for the whole data file)  
+3. no spaces in the column labels which you care about or will be using for analysis. 
+
+    + I might have a "notes" column that is just for my own sake and will not be used for analysis, so I don't need to worry about it. It 
+
+    + does matter for things you will be using, like route name. Just use underscores instead of spaces
+4. format should be .csv file   
+  
+
+In this case I am only importing one file so it is easy to keep track of what is going on, but if I bring in more files I like to give a short one or two line description of the data file so it would make sense to me in a year or two. 
+
+
+```{r}
+long <- read.csv("~/Cliffs/Keeha data analysis/practice_cliff_long.csv", header=TRUE)
+```
+
+let's take a look at this data to get an idea of what we are working with 
+```{r}
+head(long) #head will show first 6 lines
+tail(long) #tail will show last 6 lines
+```
+
+### Description of the columns: 
+  * DATE is survey date
+  * ROUTE is the name of the climbing route or number of unclimbed transect
+  * PLOT_NUM is 
+* P_LOCATION is plot location, either top, base or face
+* CL_UNCL is if the plot was UNCLIMBED or CLIMBED
+* T_LOCATION is site (i this case, it is either TR for Table Rock or HB for hawksbill)
+* GRADE_CAT is category for climbing grade, either EASY, MODERATE, or ADVANCED for climbing routes. UNCLIMBED for unclimbed routes
+* GRADE is YDS grade for climbing routes - blank for unclimbed
+* STARS is the star rating for climbing route from local guide book or mountain project
+* ROUTE_TYPE is either traditional (T) or mixed (T_S)
+* TOT_HEIGHT is total height of the survey transect in meters
+* ASPECT_ORD is compass direction for aspect (aspect was taken for entire transect)
+* ASPECT_DEG is compass direction transformed to degrees
+* ASPECT_NORTH is aspect into linear components (north-south component)
+* ASPECT_EAST is aspect into linear components (east-west component)
+* SLOPE is slope in degrees from center of each plot
+* HEIGHT_DOWN is meters down survey transect for each plot
+* TAXA taxa group for each species, either L = lichen, M = bryophyte, P = vascular plant
+* Functional is functional group for lichens, either CRUST, POWDER, FRUIT, UMB, or LOBE
+* Species is species code or identifier. Keep a seperate data set with the species code and what they actually mean 
+* Abundance field recorded abundance value, a value from 0-9 since my plots were subsetted into 9 smaller plots. I recorded presence / absence within each microplot. I am using this as a proxy for cover 
+
+
+#### As you can see, some of these values will be important for analysis and some will not. We will subset out the unimportant ones later. 
+
+If you want to take a closer look at one column, you can use summary function with dollar sign. The dollar sign is referring to a column in the data frame such that data$column.
+```{r}
+summary(long$GRADE_CAT)
+```
+
+
+## Tranforming field abundance to cover values that have more meaning 
+If you recorded cover in the field you can skip this step.  
+
+Abundance value of 
+  * 9 = 100% cover
+  * 8 = (8/9) * 100 % cover
+  * 7 = (7/0) * 100 % cover
+  and so on... 
+
+First, figure out which column in your data set it abundance since you only want to change that one. 
+```{r}
+which(colnames(long)=="Abundance") #21
+```
+We are telling R to look in the long dataframe in column 21 for values of 9 and to replace it with 100. I am using number 21 bc I am telling R that is the only column I was it to mess with. I am using R like a calculator to input the correct values . 
+```{R}
+long[,21][long[,21]== 9] <- 100
+long[,21][long[,21]== 8] <- (8/9)*100
+long[,21][long[,21]== 7] <- (7/9)*100
+long[,21][long[,21]== 6] <- (6/9)*100
+long[,21][long[,21]== 5] <- (5/9)*100
+long[,21][long[,21]== 4] <- (4/9)*100
+long[,21][long[,21]== 3] <- (3/9)*100
+long[,21][long[,21]== 2] <- (2/9)*100
+long[,21][long[,21]== 1] <- (1/9)*100
+```
+*Same process would work if you had recorded cover in cover classes and you need to sub in midpoint values*
+
+## Subset data by taxa groups
+In the case of this data, I am interested in summarizing species richness, diversity and cover for all taxa but then also for each taxa group (lichen, bryos and plants), so I need to create subsets of the long data that include only a certain taxa group.  
+```{r}
+lichen <- long[long$TAXA=="L", ]
+moss <- long[long$TAXA=="M", ]
+plant <- long[long$TAXA=="P", ]
+```
+
+
+## Transform data from long to wide format
+[here](https://garrettgman.github.io/tidying/ ) had good info about tidy data and transforming from wide to long format or vise versa
+wide = each plot has its own row
+```{r}
+library(tidyr) # this is to remind myself what package I am using
+wide <- spread(long, Species, Abundance)
+#long is the data set which you would like to transform
+#Species is the column that you want broken up into a bunch of columns 
+#abundance is the value to insert into each species column
+```
+
+Do the same thing for the subsetted data
+```{r}
+lichen_wide <- spread(lichen, Species, Abundance)
+moss_wide <- spread(moss, Species, Abundance)
+plant_wide <- spread(plant, Species, Abundance)
+```
+
+
+
+
+## Now that you have the data in matrix form, you can calculate species richness and diversity 
+Vegan reads data as a species abundance matrix where each columns in a species and each plot is row. 
+[here](http://www.randigriffin.com/2017/05/23/mosquito-community-ecology-in-vegan.html) is a good tutorial if you need some extra help with vegan. 
+You need to figure out which species are the first and last columns so you can select those and make a subset of just species data. Your species columns will be in alphabetical order (just the nature of how it is tranformed from long to wide). I use the `head()` function to figure out which species is first and last. The number after head tells R how many rows you want to see, in this case I only need the column names so just 1 row is fine.  Once you figure out which column section are the species, you can subset it out to make an abundance matrix. 
+
+I will walk through step by step for the all taxa data set 
+```{r}
+head(wide, 1)
+```
+
+Okay from this, I see that **Ace_saccharum** is the first species and **YELPDR** is the last. Now lets figure out which column numbers these are. Spelling and capitalization matters. 
+```{r}
+which(colnames(wide)=="Ace_saccharum") #20
+which( colnames(wide)=="YELPDR") #157
+```
+Output is column 20 and 157, which I write down to remember. 
+
+Now create an abundance matrix using the column numbers we got from above. 
+```{R}
+total.abundance.matrix <- wide[,20:157]
+```
+
+We need to replace na values with 0 so that vegan can read it later on
+```{r}
+total.abundance.matrix[is.na(total.abundance.matrix)] =0
+```
+
+If we take a quick peak at the abundance matrix, you can see it is only species and none of the plot info. Now it is ready to go into vegan
+```{R}
+head(total.abundance.matrix)
+```
+
+
+### let's do this for the rest of the taxa groups
+**lichen**
+```{r, message = FALSE}
+head(lichen_wide, 1)
+which( colnames(lichen_wide)=="BLAFLA") #20
+which( colnames(lichen_wide)=="YELPDR") #93
+lichen.abundance.matrix <- lichen_wide[,20:93]
+lichen.abundance.matrix[is.na(lichen.abundance.matrix)] =0
+```
+**mosses**
+```{r, message = FALSE}
+head(moss_wide, 1)
+which( colnames(moss_wide)=="And_rothii")#20
+which( colnames(moss_wide)=="Wei_controversa")#57
+moss.abundance.matrix <- moss_wide[,20:57]
+moss.abundance.matrix[is.na(moss.abundance.matrix)] =0
+```
+**plants**
+```{r, message = FALSE}
+head(plant_wide, 1)
+which( colnames(plant_wide)=="Ace_saccharum")#20
+which( colnames(plant_wide)=="Sel_tortipila")#45
+plant.abundance.matrix <- plant_wide[,20:45]
+plant.abundance.matrix[is.na(plant.abundance.matrix)] =0
+```
+
+
+
+
+## Actually calculating species richness, diversity and cover. 
+For each taxa group, you need to create a new data frame where you can insert your richness n such outputs. But you still want the info about each plot (was it climbed or unclmbed?), so bring in the columns from OG data which describe plot. Note that I only included factors which I think will be important for analysis (i.e. not YDS grade or height down).
+
+**ALL TAXA** richness, diversity and cover
+```{r}
+i_wide <- wide[,c("CL_UNCL", "PLOT_NUM", "P_LOCATION", "T_LOCATION", "GRADE_CAT", 
+                  "TOT_HEIGHT", "SLOPE", "ASPECT_NORTH", "ASPECT_EAST")]
+
+i_wide$AllRichness <- rowSums(total.abundance.matrix>0) #sp richness is a count of how many species are present in a plot
+i_wide$AllShannon <- diversity(total.abundance.matrix) # shannon is default
+i_wide$AllSimpson <- diversity(total.abundance.matrix, index = "simpson") #simpson diversity index if you wanted that
+i_wide$AllCover <- rowSums(total.abundance.matrix) #this is summing all of the cover values for each row, remember that each row is a plot
+```
+
+**Lichen** richness, diversity and cover. 
+```{r}
+i_lichen <- lichen_wide[,c("CL_UNCL", "PLOT_NUM", "P_LOCATION", "T_LOCATION", "GRADE_CAT", 
+                 "TOT_HEIGHT", "SLOPE", "ASPECT_NORTH", "ASPECT_EAST")]
+i_lichen$LRichness <- rowSums(lichen.abundance.matrix>0)
+i_lichen$LShannon <- diversity(lichen.abundance.matrix) # shannon is default
+i_lichen$LSimpson <- diversity(lichen.abundance.matrix, index = "simpson")
+i_lichen$LCover <- rowSums(lichen.abundance.matrix)
+```
+
+
+Combine all of those data sets into one for analysis. The `merge_dfs_overwrite_col` function is from package ddpcr, you input the two data sets you would like to combine (in this case it is the all taxa group summary and the lichen summary) and tell it which col you would like to merge it by. It will overwrite any of the bycol ones so you only have one of each column, it makes a nice output good for future analysis.
+```{r}
+indic<- 
+  merge_dfs_overwrite_col(
+    i_wide, i_lichen, 
+    bycol = c("CL_UNCL", "PLOT_NUM", "P_LOCATION", "T_LOCATION", 
+              "GRADE_CAT", "TOT_HEIGHT", "SLOPE", "ASPECT_NORTH",
+              "ASPECT_EAST")
+    )
+
+head(indic)
+```
+
+Now lets caluclate moss and plant richness, diversity and cover. 
+
+**Moss** richness, diversity and cover
+```{r}
+i_moss<- moss_wide[,c("CL_UNCL", "PLOT_NUM", "P_LOCATION", "T_LOCATION", "GRADE_CAT", 
+                 "TOT_HEIGHT", "SLOPE", "ASPECT_NORTH", "ASPECT_EAST")]
+i_moss$MRichness <- rowSums(moss.abundance.matrix>0)
+i_moss$MShannon <- diversity(moss.abundance.matrix) # shannon is default
+i_moss$MSimpson <- diversity(moss.abundance.matrix, index = "simpson")
+i_moss$MCover <- rowSums(moss.abundance.matrix)
+```
+
+**Plant** richness, diversity and cover
+```{r}
+i_plant <- plant_wide[,c("CL_UNCL", "PLOT_NUM", "P_LOCATION", "T_LOCATION", "GRADE_CAT", 
+                 "TOT_HEIGHT", "SLOPE", "ASPECT_NORTH", "ASPECT_EAST")]
+i_plant$PRichness <- rowSums(plant.abundance.matrix>0)
+i_plant$PShannon <- diversity(plant.abundance.matrix) # shannon is default
+i_plant$PSimpson <- diversity(plant.abundance.matrix, index = "simpson")
+i_plant$PCover <- rowSums(plant.abundance.matrix)
+```
+
+
+combine plant and moss with previously combined data (all taxa + lichen)
+```{R}
+indic<- 
+  merge_dfs_overwrite_col(
+    indic, i_moss, 
+    bycol = c("CL_UNCL", "PLOT_NUM", "P_LOCATION", 
+              "T_LOCATION", "GRADE_CAT", "TOT_HEIGHT", 
+              "SLOPE", "ASPECT_NORTH", "ASPECT_EAST")
+    )
+
+indic<- 
+  merge_dfs_overwrite_col(
+    indic, i_plant, 
+    bycol = c("CL_UNCL", "PLOT_NUM", "P_LOCATION", 
+              "T_LOCATION", "GRADE_CAT", "TOT_HEIGHT", 
+              "SLOPE", "ASPECT_NORTH", "ASPECT_EAST")
+    )
+
+head(indic)
+```
+The NA values mean that there were none of that taxa group present for that plot.  
+
+## yay! You did it! 
+### You can now preform analysis on your plot species richness, diversity and cover!
+
+**bonus tip** you may want to use *dplyr* to further subset your data.  
+i.e. if I only wanted faceplots I could use:
+```{r}
+face_indic <- indic %>%
+  group_by(P_LOCATION) %>% 
+  filter(P_LOCATION %in% c("FACE")| n() == 1)
+```
+the `%in%` means include. 

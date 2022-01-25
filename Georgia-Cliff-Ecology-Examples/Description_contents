@@ -1,0 +1,50 @@
+FOLDER CONTENTS & DESCRIPTION
+
+Importing and starting with cliff face plant cover data 
+  RMD: importing cliff data .rmd
+  Also viewable on RPubs: https://rpubs.com/heygeorgiarae/739532
+  Required files: practice_cliff_long.csv
+    This file contains plot abiotic info + cover of species
+  Contents:
+    -tranforming field abundance to cover values that have more meaning
+    -subsetting & transforming data
+    -Calculating species richness + diversity using package vegan
+    -combining output (richness + diversity) data to a useful format
+
+Plant community comparison
+  RMD: Harrison_RichnessDiversity.rmd
+  Also on RPubs https://rpubs.com/heygeorgiarae/751112
+  Required files: 
+    HARRISON_LGWA_MATRIX.csv
+    Long_data.csv
+  Contents
+    calculating species richness, diversity and cover
+    Creating high quality figures for each plants groups cover, richness and diversity by treatment group (climbed or unclimbed, in this case)
+    comparing outputs by a categorical variable (climbing grade) and doing some data viz
+    Creating rank abundance curves
+  
+  
+Comparison of richness, cover, and diversity of Lichen Functional groups
+  RMD: Harrison_lichenFunct_code.rmd
+  Also on RPubs https://rpubs.com/heygeorgiarae/751088
+  Required files:   long_data.csv
+    MS data on plant, lichen and moss cover on climbed and unclimbed plots in long format
+  Contents   
+    Subsetting the data into groups of interest
+    Calculating richness, diversity, and total cover for each group
+    combining output data for all groups
+    tidying data for figures
+    creating figures (violin plots) 
+    anovas to compare lichen functional group richness, diversity and cover
+  
+ 
+Keeha Data Analysis 
+  RMD: Keeha_analysis.rmd
+  also viewable on RPubs: https://rpubs.com/heygeorgiarae/743413
+  Required files: practice3_kdata.csv
+  Contents:
+    conducting a paired t-test (including checking assumptions)
+    obtaining simple summary statistics using dplyr
+    walk through of an NMDS (vegan package) using enviro variables
+    Viz (ggplot2) of NMDS data, including adding vectors for environmental factors
+    

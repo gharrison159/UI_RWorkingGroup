@@ -1,1 +1,25 @@
 CONTENTS:
+
+Harrison_CommAnalysis_Summer2021.R
+  Required files: 
+    PlantTraits.csv
+    FoliarCover_LPICounts.csv
+    Plot_meta.csv
+ Contents:
+    Subsetting plant community based on functional traits (from another file)
+    Calculating richness, diversity and cover for each species and functional group using LPI data
+    Data viz: Stacked bar graphs
+
+
+
+ Hill Pasture Richness analysis (2020 data).R
+  Required files: 
+    Hill_splist_meta.csv
+    hill_2019_midpoint.csv
+    hill_2020_midpoint.csv
+    hill_plot_metadata.csv
+Contents:
+    Subsetting plant community based on functional traits (from another file)
+    Calculating richness, diversity and cover for each species and functional group using LPI data
+    Stats test: LSD after anova
+    Data viz: Stacked bar graphs

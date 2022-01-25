@@ -1,0 +1,10 @@
+
+
+
+  START @ line 450
+  Files Required:
+    FoliarCover_LPICounts.csv
+  Contents:
+    Creating two axis for viz of plant communities: invadeness and shrub index
+    running an NMDS on plant community occurance
+    Plotting NMDS with ggplot2, including with environmental vectors

@@ -1,4 +1,4 @@
-
+FOLDER CONTENTS & DESCRIPTION
 
 Importing and starting with cliff face plant cover data 
   RMD: importing cliff data .rmd
@@ -12,3 +12,13 @@ Importing and starting with cliff face plant cover data
     -combining output (richness + diversity) data to a useful format
     
  
+Keeha Data Analysis 
+  RMD: Keeha_analysis.rmd
+  also viewable on RPubs: https://rpubs.com/heygeorgiarae/743413
+  Required files: practice3_kdata.csv
+  Contents:
+    conducting a paired t-test (including checking assumptions)
+    obtaining simple summary statistics using dplyr
+    walk through of an NMDS (vegan package) using enviro variables
+    Viz (ggplot2) of NMDS data, including adding vectors for environmental factors
+    

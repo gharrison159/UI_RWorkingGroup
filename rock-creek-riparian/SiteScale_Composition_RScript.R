@@ -1,4 +1,24 @@
-##Test script for RRCR Riparian monitoring dataset##
+###################################################################################################
+###################################################################################################
+##### University of Idaho - Rinker Rock Creek Ranch - Bioblitz Data Summary Statistics - 2021 #####
+#####                                 Riparian Monitoring Blitz                               #####
+###################################################################################################
+###################################################################################################
+
+#####Before continuing:
+#Wetland indicator status has been designated using the Wetland Indicator Status rating determined
+#by the U.S. Army Corps of Engineers, the Fish and Wildlife Service, the Environmental Protection Agency,
+#and the Natural Resources Conservation Service using taxonomic information from the Fish and Wildlfie
+#Service. This information is directed by the Corps of Engineers.
+
+#As of 10/22/2021, a current link to the website is: https://plants.usda.gov/home/wetlandSearch
+
+#Indicator categories:
+#OBL / Obligate Wetland / Hydrophyte / Almost always occur in wetlands
+#FACW / Facultative Wetland / Hydrophyte / Usually occur in wetlands, but may occur in non-wetlands
+#FAC / Facultative / Hydrophyte / Ocur in wetlands and non-wetlands
+#FACU / Facultative Upland / Nonhydrophte / Usually occur in non-wetlands, but may occur in wetlands
+#UPL / Obligate Upland / Nonhydrophyte / Almost never occur in wetlands
 setwd("~/Rangeland Center/Research/Git Depot/UI_RWorkingGroup/rock-creek-riparian")
 KR_RRCR_2021_Riparian_Bioblitzdata_Final <- read.csv("~/Rangeland Center/Research/Git Depot/UI_RWorkingGroup/rock-creek-riparian/KR_RRCR_2021_Riparian_Bioblitzdata_Final.csv", header=TRUE)
 View(KR_RRCR_2021_Riparian_Bioblitzdata_Final)
@@ -10,7 +30,7 @@ str(blitz.data) #Look at all of the column headers
 ###################################################
 #####PERCENT Composition BY WETLAND INDICATOR#####
 ###################################################
-#Calculated as: [(# of points with at least one hit of wetland indicator A)/(# of points)]*100
+#Calculated as: [(# of points with at least one hit of wetland indicator A)/(# of hits)]*100
 
 #####Site Scale#####
 
@@ -92,3 +112,7 @@ p <- p + theme(axis.text.x = element_text(size = 12),
                axis.title.x = element_text(size = 14, face = "bold"),
                axis.title.y = element_text(size = 14, face = "bold"))
 p 
+
+#####Remove all of the unneeded data
+remove(p, b.dat.long, agg.b.dat)
+
